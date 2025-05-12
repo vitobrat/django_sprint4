@@ -7,32 +7,27 @@ from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 
 from blog.models import Post, Category
 from blog.forms import PostForm, CommentForm
 
 POSTS_PER_PAGE = 10
 
-
 class PostMixin:
     """Set default model for post views."""
-
     model = Post
-
 
 class PostEditMixin(PostMixin):
     """Set default template for post-edit views."""
-
     template_name = 'blog/create.html'
-
 
 class PostIndexListView(PostMixin, ListView):
     """Show latest POSTS_PER_PAGE posts.
-
     1. Publication date must be earlier than current;
     2. Post & category must be published.
     """
-
     template_name = 'blog/index.html'
     paginate_by = POSTS_PER_PAGE
 
@@ -44,15 +39,12 @@ class PostIndexListView(PostMixin, ListView):
             '-pub_date'
         ).annotate(comment_count=Count("comment"))
 
-
 class PostCategoryListView(PostMixin, ListView):
     """Show latest POSTS_PER_PAGE posts in category.
-
     1. Publication date must be earlier than current;
     2. Post & category must be published.
     3. Posts must belong to selected category.
     """
-
     template_name = 'blog/category.html'
     paginate_by = POSTS_PER_PAGE
     _category = None
@@ -81,14 +73,11 @@ class PostCategoryListView(PostMixin, ListView):
         context['category'] = self.get_category()
         return context
 
-
 class PostDetailView(PostMixin, DetailView):
     """Show a single post by ID.
-
     1. Publication date must be earlier than current;
     2. Post & category must be published.
     """
-
     template_name = 'blog/detail.html'
 
     def get_object(self, **kwargs):
@@ -96,18 +85,15 @@ class PostDetailView(PostMixin, DetailView):
         post = get_object_or_404(
             self.model.objects.filter(pk=self.kwargs['post_id'])
         )
-
         # Allow access: user is the author.
         if post.author == self.request.user:
             return post
-
         # Deny access: user is not the author, post isn't published.
         is_denied = (not post.is_published
                      or post.pub_date > timezone.now()
                      or not post.category.is_published)
         if is_denied:
             raise Http404
-
         # Allow access: user is not the author, post is published.
         return post
 
@@ -118,10 +104,9 @@ class PostDetailView(PostMixin, DetailView):
         context['comments'] = self.object.comment.select_related('author')
         return context
 
-
+@method_decorator(login_required, name="dispatch")
 class PostCreateView(PostEditMixin, LoginRequiredMixin, CreateView):
     """Create a new post."""
-
     form_class = PostForm
 
     def form_valid(self, form):
@@ -133,10 +118,9 @@ class PostCreateView(PostEditMixin, LoginRequiredMixin, CreateView):
         """Redirect to user's page (blog:profile)."""
         return reverse("blog:profile", args=[self.request.user])
 
-
+@method_decorator(login_required, name="dispatch")
 class PostUpdateView(PostEditMixin, LoginRequiredMixin, UpdateView):
     """Edit an existing post."""
-
     form_class = PostForm
     pk_url_kwarg = 'post_id'
 
@@ -152,10 +136,9 @@ class PostUpdateView(PostEditMixin, LoginRequiredMixin, UpdateView):
             'blog:post_detail', kwargs={'post_id': self.kwargs['post_id']}
         )
 
-
+@method_decorator(login_required, name="dispatch")
 class PostDeleteView(PostEditMixin, LoginRequiredMixin, DeleteView):
     """Delete an existing post."""
-
     pk_url_kwarg = 'post_id'
 
     def dispatch(self, request, *args, **kwargs):

@@ -6,6 +6,8 @@ from django.urls import reverse
 
 from django.views.generic import ListView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 
 from blog.models import Post
 from blog.views.posts import POSTS_PER_PAGE
@@ -13,10 +15,8 @@ from blog.forms import ProfileEditForm
 
 User = get_user_model()
 
-
 class ProfileListView(ListView):
     """Show user's page with posts."""
-
     model = Post
     paginate_by = POSTS_PER_PAGE  # Defined in 'blog/views/posts.py'
     template_name = 'blog/profile.html'
@@ -31,8 +31,8 @@ class ProfileListView(ListView):
                 'pub_date__lte': timezone.now()
             })
         return (self.model.objects.select_related('author')
-                .filter(**filters).order_by('-pub_date')
-                .annotate(comment_count=Count("comment")))
+                    .filter(**filters).order_by('-pub_date')
+                    .annotate(comment_count=Count("comment")))
 
     def get_context_data(self, **kwargs):
         """Add profile to the context."""
@@ -42,10 +42,9 @@ class ProfileListView(ListView):
         )
         return context
 
-
+@method_decorator(login_required, name="dispatch")
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     """Show user data editing form."""
-
     template_name = 'blog/user.html'
     form_class = ProfileEditForm
 

@@ -4,21 +4,20 @@ from django.urls import reverse
 
 from django.views.generic import CreateView, UpdateView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 
 from blog.models import Post, Comment
 from blog.forms import CommentForm
 
-
 class CommentMixin(LoginRequiredMixin):
     """Set default model and template for comment views."""
-
     model = Comment
     template_name = 'blog/comment.html'
 
-
+@method_decorator(login_required, name='dispatch')
 class CommentCreateView(CommentMixin, CreateView):
     """Create comment."""
-
     form_class = CommentForm
     _post = None
 
@@ -42,10 +41,9 @@ class CommentCreateView(CommentMixin, CreateView):
         """Return post detail page (blog:post_detail)."""
         return reverse('blog:post_detail', kwargs={'post_id': self._post.pk})
 
-
+@method_decorator(login_required, name='dispatch')
 class CommentUpdDelMixin(CommentMixin, View):
     """Mixin for comment update and delete views."""
-
     pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
@@ -59,14 +57,10 @@ class CommentUpdDelMixin(CommentMixin, View):
         return reverse("blog:post_detail",
                        kwargs={'post_id': self.kwargs['post_id']})
 
-
 class CommentUpdateView(CommentUpdDelMixin, UpdateView):
     """Edit an existing comment text."""
-
     form_class = CommentForm
-
 
 class CommentDeleteView(CommentUpdDelMixin, DeleteView):
     """Delete an existing comment."""
-
     pass
